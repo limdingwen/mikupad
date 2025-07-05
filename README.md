@@ -36,6 +36,16 @@ To use **mikupad** fully offline, run the provided `compile` script or download 
 
 You can also [try it on GitHub Pages](https://lmg-anon.github.io/mikupad/mikupad.html).
 
+## Running with Docker
+
+You can also run **mikupad** using Docker. This automatically compiles the HTML and runs the custom NodeJS server, which serves the HTML, among other functions.
+
+```shell
+docker compose up --build
+```
+
+Then visit http://localhost:3000/.
+
 ## Contributing
 
 Contributions from the open-source community are welcome. Whether it's fixing a bug, adding a feature, or improving the documentation, your contributions are greatly appreciated. To contribute to **mikupad**, follow these steps:
