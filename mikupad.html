@@ -1447,6 +1447,7 @@ const API_LLAMA_CPP = 0;
 const API_KOBOLD_CPP = 2;
 const API_OPENAI_COMPAT = 3;
 const API_AI_HORDE = 4;
+const API_OLLAMA = 5;
 
 // Polyfill for piece of shit Chromium
 if (!(Symbol.asyncIterator in ReadableStream.prototype)) {
@@ -1489,6 +1490,8 @@ function normalizeEndpoint(endpoint, endpointAPI) {
 		urlString = urlString.replace(/\/api\/?$/, ""); // remove "/api" from the end of the string
 	if (endpointAPI == API_AI_HORDE)
 		urlString = "https://aihorde.net/api";
+	if (endpointAPI == API_OLLAMA)
+		urlString = urlString.replace(/\/api\/?$/, ""); // remove "/api" from the end of the string
 	urlString = urlString.replace(/\/$/, ""); // remove "/" from the end of the string
 
 	return urlString;
@@ -1519,6 +1522,8 @@ export async function getTokenCount({ endpoint, endpointAPI, endpointAPIKey, sig
 			if (tokenCount != -1)
 				return tokenCount;
 			return 0;
+		case API_OLLAMA:
+			return await ollamaTokenCount({ endpoint, endpointAPIKey, signal, ...options });
 		default:
 			return 0;
 	}
@@ -1550,6 +1555,8 @@ export async function getTokens({ endpoint, endpointAPI, endpointAPIKey, signal,
 			if (tokens !== null)
 				return tokens;
 			return [];
+		case API_OLLAMA:
+			return await ollamaTokenize({ endpoint, endpointAPIKey, signal, ...options });
 		default:
 			return [];
 	}
@@ -1562,6 +1569,8 @@ export async function getModels({ endpoint, endpointAPI, endpointAPIKey, signal,
 			return await openaiModels({ endpoint, endpointAPIKey, signal, ...options });
 		case API_AI_HORDE:
 			return await aiHordeModels({ endpoint, endpointAPIKey, signal, ...options });
+		case API_OLLAMA:
+			return await ollamaModels({ endpoint, endpointAPIKey, signal, ...options });
 		default:
 			return [];
 	}
@@ -1578,6 +1587,8 @@ export async function* completion({ endpoint, endpointAPI, endpointAPIKey, signa
 			return yield* await openaiCompletion({ endpoint, endpointAPIKey, signal, ...options });
 		case API_AI_HORDE:
 			return yield* await aiHordeCompletion({ endpoint, endpointAPIKey, signal, ...options });
+		case API_OLLAMA:
+			return yield* await ollamaCompletion({ endpoint, endpointAPIKey, signal, ...options });
 	}
 }
 
@@ -1586,6 +1597,8 @@ export async function* chatCompletion({ endpoint, endpointAPI, endpointAPIKey, s
 	switch (endpointAPI) {
 		case API_OPENAI_COMPAT:
 			return yield* await openaiChatCompletion({ endpoint, endpointAPIKey, signal, ...options });
+		case API_OLLAMA:
+			return yield* await ollamaChatCompletion({ endpoint, endpointAPIKey, signal, ...options });
 	}
 }
 
@@ -1598,6 +1611,8 @@ export async function abortCompletion({ endpoint, endpointAPI, ...options }) {
 			return await openaiOobaAbortCompletion({ endpoint, ...options });
 		case API_AI_HORDE:
 			return await aiHordeAbortCompletion({ endpoint, ...options });
+		case API_OLLAMA:
+			return await ollamaAbortCompletion({ endpoint, ...options });
 	}
 }
 
@@ -3769,6 +3784,9 @@ function LogitBiasModal({ isOpen, closeModal, logitBias, setLogitBias, logitBias
 				break;
 			case API_OPENAI_COMPAT:
 				openaiSetLogitBiasParams();
+				break;
+			case API_OLLAMA:
+				ollamaSetLogitBiasParams();
 				break;
 		}
 	}, [logitBias, endpointAPI]);
@@ -7212,6 +7230,10 @@ export function App({ sessionStorage, templateStorage, useSessionState, useDBTem
 			case API_AI_HORDE:
 				setUseChatAPI(false);
 				break;
+			case API_OLLAMA:
+				if (url.protocol != 'http:' && url.protocol != 'https:')
+					url.protocol = "http:";
+				break;
 		}
 		setEndpoint(url.toString());
 		setEndpointAPI(value);
@@ -7440,6 +7462,7 @@ export function App({ sessionStorage, templateStorage, useSessionState, useDBTem
 						{ name: 'KoboldCpp'        , value: API_KOBOLD_CPP },
 						{ name: 'OpenAI Compatible', value: API_OPENAI_COMPAT },
 						{ name: 'AI Horde'         , value: API_AI_HORDE },
+						{ name: 'Ollama'           , value: API_OLLAMA },
 					]}/>
 				<div className="hbox-flex" style=${{"flex-wrap": "unset"}}>
 					<${InputBox} label="API Key" type="${!showAPIKey ? "password" : "text"}"
